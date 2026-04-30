@@ -14,25 +14,6 @@ set(CMAKE_INSTALL_LIBDIR lib)
 option(BUILD_TESTING "Build tests" ON)
 
 #-----------------------------------------------------------------------
-# Find BLAS and create a modern imported target if missing
-#-----------------------------------------------------------------------
-find_package(BLAS REQUIRED)
-
-if(NOT TARGET BLAS::BLAS)
-  add_library(BLAS::BLAS INTERFACE IMPORTED)
-  if(BLAS_LIBRARIES)
-    set_target_properties(BLAS::BLAS PROPERTIES
-      INTERFACE_LINK_LIBRARIES "${BLAS_LIBRARIES}"
-    )
-  endif()
-  if(BLAS_INCLUDE_DIRS)
-    set_target_properties(BLAS::BLAS PROPERTIES
-      INTERFACE_INCLUDE_DIRECTORIES "${BLAS_INCLUDE_DIRS}"
-    )
-  endif()
-endif()
-
-#-----------------------------------------------------------------------
 # Output directories inside the build tree
 #-----------------------------------------------------------------------
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
@@ -61,10 +42,9 @@ set(LIB_SRCS
 #-----------------------------------------------------------------------
 add_library(mkl_static STATIC ${LIB_SRCS})
 set_target_properties(mkl_static PROPERTIES
-    OUTPUT_NAME mkl
+    OUTPUT_NAME fftw3
     Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
 )
-target_link_libraries(mkl_static PUBLIC BLAS::BLAS)
 target_include_directories(mkl_static PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>
@@ -73,12 +53,11 @@ target_include_directories(mkl_static PUBLIC
 
 add_library(mkl_shared SHARED ${LIB_SRCS})
 set_target_properties(mkl_shared PROPERTIES
-    OUTPUT_NAME mkl
+    OUTPUT_NAME fftw3
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
     Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
 )
-target_link_libraries(mkl_shared PUBLIC BLAS::BLAS)
 target_include_directories(mkl_shared PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>
@@ -110,18 +89,18 @@ install(CODE "
     set(_mkl_libdir \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\")
     message(STATUS \"Creating MKL compatibility symlinks in \"\${_mkl_libdir})
     # .so symlinks (used by FindMKL.cmake on Linux)
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.so libmkl_intel_lp64.so
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.so libmkl_intel_lp64.so
                     WORKING_DIRECTORY \${_mkl_libdir})
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.so libmkl_sequential.so
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.so libmkl_sequential.so
                     WORKING_DIRECTORY \${_mkl_libdir})
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.so libmkl_core.so
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.so libmkl_core.so
                     WORKING_DIRECTORY \${_mkl_libdir})
     # .a symlinks (fallback for static-only installs)
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.a libmkl_intel_lp64.a
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.a libmkl_intel_lp64.a
                     WORKING_DIRECTORY \${_mkl_libdir})
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.a libmkl_sequential.a
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.a libmkl_sequential.a
                     WORKING_DIRECTORY \${_mkl_libdir})
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.a libmkl_core.a
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.a libmkl_core.a
                     WORKING_DIRECTORY \${_mkl_libdir})
 ")
 
