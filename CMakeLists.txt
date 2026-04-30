@@ -65,6 +65,11 @@ set_target_properties(mkl_static PROPERTIES
     Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
 )
 target_link_libraries(mkl_static PUBLIC BLAS::BLAS)
+target_include_directories(mkl_static PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 add_library(mkl_shared SHARED ${LIB_SRCS})
 set_target_properties(mkl_shared PROPERTIES
@@ -74,6 +79,11 @@ set_target_properties(mkl_shared PROPERTIES
     Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}
 )
 target_link_libraries(mkl_shared PUBLIC BLAS::BLAS)
+target_include_directories(mkl_shared PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 # Convenience alias target
 add_library(mkl ALIAS mkl_shared)
