@@ -18,3 +18,6 @@ message(STATUS "========================================")
 add_executable(dummy main.F90)
 target_include_directories(dummy PRIVATE ${MKL_INCLUDE_DIRS})
 target_link_libraries(dummy ${MKL_LIBRARIES} ${BLAS_LIBRARIES})
+
+enable_testing()
+add_test(NAME dummy_mkl_tests COMMAND dummy)
