@@ -87,11 +87,33 @@ install(TARGETS mkl_static mkl_shared
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(FILES include/fftw3.f03 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES include/fftw3.f03 include/mkl.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.mod"
 )
+
+#-----------------------------------------------------------------------
+# Create library symlinks so that ecbuild FindMKL.cmake discovers us
+#-----------------------------------------------------------------------
+install(CODE "
+    set(_mkl_libdir \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\")
+    message(STATUS \"Creating MKL compatibility symlinks in \"\${_mkl_libdir})
+    # .so symlinks (used by FindMKL.cmake on Linux)
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.so libmkl_intel_lp64.so
+                    WORKING_DIRECTORY \${_mkl_libdir})
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.so libmkl_sequential.so
+                    WORKING_DIRECTORY \${_mkl_libdir})
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.so libmkl_core.so
+                    WORKING_DIRECTORY \${_mkl_libdir})
+    # .a symlinks (fallback for static-only installs)
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.a libmkl_intel_lp64.a
+                    WORKING_DIRECTORY \${_mkl_libdir})
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.a libmkl_sequential.a
+                    WORKING_DIRECTORY \${_mkl_libdir})
+    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libmkl.a libmkl_core.a
+                    WORKING_DIRECTORY \${_mkl_libdir})
+")
 
 install(EXPORT mkl-targets
     FILE mkl-targets.cmake

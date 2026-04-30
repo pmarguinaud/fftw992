@@ -1,0 +1,3 @@
+PROGRAM DUMMY
+  PRINT *, 'Dummy MKL user program'
+END PROGRAM DUMMY
