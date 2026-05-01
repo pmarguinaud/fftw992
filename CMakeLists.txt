@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(fftw3ial LANGUAGES Fortran VERSION 1.0.0)
+project(fftw4ial LANGUAGES Fortran VERSION 1.0.0)
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
@@ -100,64 +100,42 @@ target_include_directories(fftw3f PUBLIC
 # Install targets + export
 #-----------------------------------------------------------------------
 install(TARGETS fftw3 fftw3f fftw3_static fftw3f_static
-    EXPORT fftw3ial-targets
+    EXPORT fftw4ial-targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(FILES include/fftw3.f03 include/mkl.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES include/fftw3.f03 include/fftw3.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.mod"
 )
 
-#-----------------------------------------------------------------------
-# Create library symlinks so that ecbuild FindMKL.cmake discovers us
-#-----------------------------------------------------------------------
-install(CODE "
-    set(_mkl_libdir \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}\")
-    message(STATUS \"Creating MKL compatibility symlinks in \"\${_mkl_libdir})
-    # .so symlinks (used by FindMKL.cmake on Linux)
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.so libmkl_intel_lp64.so
-                    WORKING_DIRECTORY \${_mkl_libdir})
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.so libmkl_sequential.so
-                    WORKING_DIRECTORY \${_mkl_libdir})
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.so libmkl_core.so
-                    WORKING_DIRECTORY \${_mkl_libdir})
-    # .a symlinks (fallback for static-only installs)
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.a libmkl_intel_lp64.a
-                    WORKING_DIRECTORY \${_mkl_libdir})
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.a libmkl_sequential.a
-                    WORKING_DIRECTORY \${_mkl_libdir})
-    execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libfftw3.a libmkl_core.a
-                    WORKING_DIRECTORY \${_mkl_libdir})
-")
-
-install(EXPORT fftw3ial-targets
-    FILE fftw3ial-targets.cmake
-    NAMESPACE fftw3ial::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw3ial
+install(EXPORT fftw4ial-targets
+    FILE fftw4ial-targets.cmake
+    NAMESPACE fftw4ial::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw4ial
 )
 
 #-----------------------------------------------------------------------
 # Package configuration file
 #-----------------------------------------------------------------------
 configure_package_config_file(
-    "${CMAKE_SOURCE_DIR}/cmake/fftw3ial-config.cmake.in"
-    "${CMAKE_BINARY_DIR}/fftw3ial-config.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw3ial
+    "${CMAKE_SOURCE_DIR}/cmake/fftw4ial-config.cmake.in"
+    "${CMAKE_BINARY_DIR}/fftw4ial-config.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw4ial
 )
 
 write_basic_package_version_file(
-    "${CMAKE_BINARY_DIR}/fftw3ial-config-version.cmake"
+    "${CMAKE_BINARY_DIR}/fftw4ial-config-version.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 
 install(FILES
-    "${CMAKE_BINARY_DIR}/fftw3ial-config.cmake"
-    "${CMAKE_BINARY_DIR}/fftw3ial-config-version.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw3ial
+    "${CMAKE_BINARY_DIR}/fftw4ial-config.cmake"
+    "${CMAKE_BINARY_DIR}/fftw4ial-config-version.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw4ial
 )
 
 #-----------------------------------------------------------------------
