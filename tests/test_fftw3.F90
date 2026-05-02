@@ -1,5 +1,5 @@
 PROGRAM TEST_FFTW3
-  USE ISO_C_BINDING, ONLY: C_PTR, C_ASSOCIATED, C_SIZE_T
+  USE ISO_C_BINDING, ONLY: C_PTR, C_ASSOCIATED, C_SIZE_T, C_F_POINTER
   IMPLICIT NONE
 
   INCLUDE 'fftw3.f03'
@@ -17,47 +17,43 @@ PROGRAM TEST_FFTW3
   REAL(KIND=4), PARAMETER :: PIS = 4.0_4*ATAN(1.0_4)
 
   !---------------------------------------------------------------------
-  ! DP local arrays
+  ! DP pointers for allocated arrays
   !---------------------------------------------------------------------
-  REAL(KIND=8)    :: A1(N1+2), ORIG1(N1)
-  COMPLEX(KIND=CK)   :: C1(N1/2+1)
-  REAL(KIND=8)    :: R1(N1+2)
-  EQUIVALENCE (C1, R1)
-
-  REAL(KIND=8)    :: A2(N2), B2(N2), ORIG2(N2)
-  COMPLEX(KIND=CK)   :: C2(N2/2+1)
-
-  REAL(KIND=8)    :: ABATCH(N1,LOT)
-  COMPLEX(KIND=CK)   :: CBATCH(N1/2+1,LOT)
-  REAL(KIND=8)    :: ORIG_BATCH(N1,LOT)
-
-  REAL(KIND=8)    :: ABIP(N1+2,LOT)
-  COMPLEX(KIND=CK)   :: CBIP(N1/2+1,LOT)
-  REAL(KIND=8)    :: RBIP(N1+2,LOT)
-  EQUIVALENCE (ABIP, CBIP, RBIP)
+  TYPE(C_PTR) :: PTR_DP1, PTR_DP2A, PTR_DP2C, PTR_DP2B
+  TYPE(C_PTR) :: PTR_DP3A, PTR_DP3C
+  TYPE(C_PTR) :: PTR_DP4
+  REAL(KIND=8),    POINTER :: R1(:)
+  COMPLEX(KIND=CK), POINTER :: C1(:)
+  REAL(KIND=8),    POINTER :: A2(:), B2(:)
+  COMPLEX(KIND=CK), POINTER :: C2(:)
+  REAL(KIND=8),    POINTER :: ABATCH(:,:)
+  COMPLEX(KIND=CK), POINTER :: CBATCH(:,:)
+  REAL(KIND=8),    POINTER :: RBIP(:,:)
+  COMPLEX(KIND=CK), POINTER :: CBIP(:,:)
 
   !---------------------------------------------------------------------
-  ! SP local arrays
+  ! SP pointers for allocated arrays
   !---------------------------------------------------------------------
-  REAL(KIND=4)    :: AS1(N1+2), ORIGS1(N1)
-  COMPLEX(KIND=CKS)  :: CS1(N1/2+1)
-  REAL(KIND=4)    :: RS1(N1+2)
-  EQUIVALENCE (CS1, RS1)
-
-  REAL(KIND=4)    :: AS2(N2), BS2(N2), ORIGS2(N2)
-  COMPLEX(KIND=CKS)  :: CS2(N2/2+1)
-
-  REAL(KIND=4)    :: ASBATCH(N1,LOT)
-  COMPLEX(KIND=CKS)  :: CSBATCH(N1/2+1,LOT)
-  REAL(KIND=4)    :: ORIGS_BATCH(N1,LOT)
-
-  REAL(KIND=4)    :: ASBIP(N1+2,LOT)
-  COMPLEX(KIND=CKS)  :: CSBIP(N1/2+1,LOT)
-  REAL(KIND=4)    :: RSBIP(N1+2,LOT)
-  EQUIVALENCE (ASBIP, CSBIP, RSBIP)
+  TYPE(C_PTR) :: PTR_SP1, PTR_SP2A, PTR_SP2C, PTR_SP2B
+  TYPE(C_PTR) :: PTR_SP3A, PTR_SP3C
+  TYPE(C_PTR) :: PTR_SP4
+  REAL(KIND=4),     POINTER :: RS1(:)
+  COMPLEX(KIND=CKS), POINTER :: CS1(:)
+  REAL(KIND=4),     POINTER :: AS2(:), BS2(:)
+  COMPLEX(KIND=CKS), POINTER :: CS2(:)
+  REAL(KIND=4),     POINTER :: ASBATCH(:,:)
+  COMPLEX(KIND=CKS), POINTER :: CSBATCH(:,:)
+  REAL(KIND=4),     POINTER :: RSBIP(:,:)
+  COMPLEX(KIND=CKS), POINTER :: CSBIP(:,:)
 
   !---------------------------------------------------------------------
-  ! Memory handles
+  ! ORIG arrays (local, not passed to FFTW)
+  !---------------------------------------------------------------------
+  REAL(KIND=8)    :: ORIG1(N1), ORIG2(N2), ORIG_BATCH(N1,LOT)
+  REAL(KIND=4)    :: ORIGS1(N1), ORIGS2(N2), ORIGS_BATCH(N1,LOT)
+
+  !---------------------------------------------------------------------
+  ! Memory handles for smoke test
   !---------------------------------------------------------------------
   TYPE(C_PTR) :: HDP, HSP
 
@@ -71,8 +67,15 @@ PROGRAM TEST_FFTW3
 
   !=====================================================================
   ! Test DP 1: in-place R2C + C2R round-trip  (N=30)
+  !
+  ! Need N+2 = 32 reals = 16 complex.
+  ! fftw_alloc_complex(15) allocates 16 complex = 32 reals.
   !=====================================================================
   PRINT '(A)', '--- DP Test 1: in-place round-trip N=30 ---'
+  PTR_DP1 = fftw_alloc_complex(INT(N1/2, C_SIZE_T))
+  CALL C_F_POINTER(PTR_DP1, R1, [N1+2])
+  CALL C_F_POINTER(PTR_DP1, C1, [N1/2+1])
+
   DO I = 1, N1
     T = 2.0_8*PI*REAL(I-1,KIND=8)/REAL(N1,KIND=8)
     ORIG1(I) = SIN(3.0_8*T) + 0.5_8*COS(5.0_8*T)
@@ -95,10 +98,23 @@ PROGRAM TEST_FFTW3
   IF (ERR > 1.0E-12_8) THEN; PRINT '(A)', 'FAILED'; ALL_OK = .FALSE.
   ELSE; PRINT '(A)', 'PASSED'; END IF
 
+  CALL fftw_free(PTR_DP1)
+
   !=====================================================================
   ! Test DP 2: out-of-place R2C + C2R round-trip (N=48)
+  !
+  ! A2: 48 reals = 24 complex  -> fftw_alloc_complex(23) gives 24
+  ! C2: 25 complex             -> fftw_alloc_complex(24) gives 25
+  ! B2: 48 reals = 24 complex  -> fftw_alloc_complex(23) gives 24
   !=====================================================================
   PRINT '(A)', '--- DP Test 2: out-of-place round-trip N=48 ---'
+  PTR_DP2A = fftw_alloc_complex(INT(N2/2, C_SIZE_T))
+  PTR_DP2C = fftw_alloc_complex(INT(N2/2, C_SIZE_T))
+  PTR_DP2B = fftw_alloc_complex(INT(N2/2, C_SIZE_T))
+  CALL C_F_POINTER(PTR_DP2A, A2, [N2])
+  CALL C_F_POINTER(PTR_DP2C, C2, [N2/2+1])
+  CALL C_F_POINTER(PTR_DP2B, B2, [N2])
+
   DO I = 1, N2
     T = 2.0_8*PI*REAL(I-1,KIND=8)/REAL(N2,KIND=8)
     ORIG2(I) = COS(2.0_8*T) - 0.3_8*SIN(7.0_8*T)
@@ -121,10 +137,22 @@ PROGRAM TEST_FFTW3
   IF (ERR > 1.0E-12_8) THEN; PRINT '(A)', 'FAILED'; ALL_OK = .FALSE.
   ELSE; PRINT '(A)', 'PASSED'; END IF
 
+  CALL fftw_free(PTR_DP2A)
+  CALL fftw_free(PTR_DP2C)
+  CALL fftw_free(PTR_DP2B)
+
   !=====================================================================
   ! Test DP 3: batch out-of-place (N=30, LOT=4)
+  !
+  ! ABATCH: 30*4=120 reals = 60 complex -> fftw_alloc_complex(59)
+  ! CBATCH: 16*4=64 complex             -> fftw_alloc_complex(63)
   !=====================================================================
   PRINT '(A)', '--- DP Test 3: batch out-of-place N=30, LOT=4 ---'
+  PTR_DP3A = fftw_alloc_complex(INT(N1*LOT/2, C_SIZE_T))
+  PTR_DP3C = fftw_alloc_complex(INT((N1/2+1)*LOT-1, C_SIZE_T))
+  CALL C_F_POINTER(PTR_DP3A, ABATCH, [N1,LOT])
+  CALL C_F_POINTER(PTR_DP3C, CBATCH, [N1/2+1,LOT])
+
   DO J = 1, LOT
     DO I = 1, N1
       T = 2.0_8*PI*REAL(I-1,KIND=8)/REAL(N1,KIND=8)
@@ -157,23 +185,33 @@ PROGRAM TEST_FFTW3
   IF (ERR > 1.0E-12_8) THEN; PRINT '(A)', 'FAILED'; ALL_OK = .FALSE.
   ELSE; PRINT '(A)', 'PASSED'; END IF
 
+  CALL fftw_free(PTR_DP3A)
+  CALL fftw_free(PTR_DP3C)
+
   !=====================================================================
   ! Test DP 4: batch in-place (N=30, LOT=4)
+  !
+  ! Need (30+2)*4 = 128 reals = 64 complex.
+  ! fftw_alloc_complex(63) allocates 64 complex = 128 reals.
   !=====================================================================
   PRINT '(A)', '--- DP Test 4: batch in-place N=30, LOT=4 ---'
+  PTR_DP4 = fftw_alloc_complex(INT((N1+2)*LOT/2, C_SIZE_T))
+  CALL C_F_POINTER(PTR_DP4, RBIP, [N1+2,LOT])
+  CALL C_F_POINTER(PTR_DP4, CBIP, [N1/2+1,LOT])
+
   DO J = 1, LOT
     DO I = 1, N1
       T = 2.0_8*PI*REAL(I-1,KIND=8)/REAL(N1,KIND=8)
       ORIG_BATCH(I,J) = COS(REAL(J,KIND=8)*T)
-      ABIP(I,J) = ORIG_BATCH(I,J)
+      RBIP(I,J) = ORIG_BATCH(I,J)
     END DO
   END DO
 
   CALL dfftw_plan_many_dft_r2c(PLAN_FWD,1,[N1],LOT, &
-       ABIP,[N1+2],1,N1+2, &
+       RBIP,[N1+2],1,N1+2, &
        CBIP,[N1/2+1],1,N1/2+1, &
        FFTW_ESTIMATE)
-  CALL dfftw_execute_dft_r2c(PLAN_FWD,ABIP,CBIP)
+  CALL dfftw_execute_dft_r2c(PLAN_FWD,RBIP,CBIP)
   CALL dfftw_destroy_plan(PLAN_FWD)
 
   CALL dfftw_plan_many_dft_c2r(PLAN_BWD,1,[N1],LOT, &
@@ -193,10 +231,16 @@ PROGRAM TEST_FFTW3
   IF (ERR > 1.0E-12_8) THEN; PRINT '(A)', 'FAILED'; ALL_OK = .FALSE.
   ELSE; PRINT '(A)', 'PASSED'; END IF
 
+  CALL fftw_free(PTR_DP4)
+
   !=====================================================================
   ! Test SP 1: in-place R2C + C2R round-trip (N=30)
   !=====================================================================
   PRINT '(A)', '--- SP Test 1: in-place round-trip N=30 ---'
+  PTR_SP1 = fftwf_alloc_complex(INT(N1/2, C_SIZE_T))
+  CALL C_F_POINTER(PTR_SP1, RS1, [N1+2])
+  CALL C_F_POINTER(PTR_SP1, CS1, [N1/2+1])
+
   DO I = 1, N1
     TS = 2.0_4*PIS*REAL(I-1,KIND=4)/REAL(N1,KIND=4)
     ORIGS1(I) = SIN(3.0_4*TS) + 0.5_4*COS(5.0_4*TS)
@@ -219,10 +263,19 @@ PROGRAM TEST_FFTW3
   IF (ERRS > 1.0E-5_4) THEN; PRINT '(A)', 'FAILED'; ALL_OK = .FALSE.
   ELSE; PRINT '(A)', 'PASSED'; END IF
 
+  CALL fftwf_free(PTR_SP1)
+
   !=====================================================================
   ! Test SP 2: out-of-place R2C + C2R round-trip (N=48)
   !=====================================================================
   PRINT '(A)', '--- SP Test 2: out-of-place round-trip N=48 ---'
+  PTR_SP2A = fftwf_alloc_complex(INT(N2/2, C_SIZE_T))
+  PTR_SP2C = fftwf_alloc_complex(INT(N2/2, C_SIZE_T))
+  PTR_SP2B = fftwf_alloc_complex(INT(N2/2, C_SIZE_T))
+  CALL C_F_POINTER(PTR_SP2A, AS2, [N2])
+  CALL C_F_POINTER(PTR_SP2C, CS2, [N2/2+1])
+  CALL C_F_POINTER(PTR_SP2B, BS2, [N2])
+
   DO I = 1, N2
     TS = 2.0_4*PIS*REAL(I-1,KIND=4)/REAL(N2,KIND=4)
     ORIGS2(I) = COS(2.0_4*TS) - 0.3_4*SIN(7.0_4*TS)
@@ -245,10 +298,19 @@ PROGRAM TEST_FFTW3
   IF (ERRS > 1.0E-5_4) THEN; PRINT '(A)', 'FAILED'; ALL_OK = .FALSE.
   ELSE; PRINT '(A)', 'PASSED'; END IF
 
+  CALL fftwf_free(PTR_SP2A)
+  CALL fftwf_free(PTR_SP2C)
+  CALL fftwf_free(PTR_SP2B)
+
   !=====================================================================
   ! Test SP 3: batch out-of-place (N=30, LOT=4)
   !=====================================================================
   PRINT '(A)', '--- SP Test 3: batch out-of-place N=30, LOT=4 ---'
+  PTR_SP3A = fftwf_alloc_complex(INT(N1*LOT/2, C_SIZE_T))
+  PTR_SP3C = fftwf_alloc_complex(INT((N1/2+1)*LOT-1, C_SIZE_T))
+  CALL C_F_POINTER(PTR_SP3A, ASBATCH, [N1,LOT])
+  CALL C_F_POINTER(PTR_SP3C, CSBATCH, [N1/2+1,LOT])
+
   DO J = 1, LOT
     DO I = 1, N1
       TS = 2.0_4*PIS*REAL(I-1,KIND=4)/REAL(N1,KIND=4)
@@ -281,23 +343,30 @@ PROGRAM TEST_FFTW3
   IF (ERRS > 1.0E-5_4) THEN; PRINT '(A)', 'FAILED'; ALL_OK = .FALSE.
   ELSE; PRINT '(A)', 'PASSED'; END IF
 
+  CALL fftwf_free(PTR_SP3A)
+  CALL fftwf_free(PTR_SP3C)
+
   !=====================================================================
   ! Test SP 4: batch in-place (N=30, LOT=4)
   !=====================================================================
   PRINT '(A)', '--- SP Test 4: batch in-place N=30, LOT=4 ---'
+  PTR_SP4 = fftwf_alloc_complex(INT((N1+2)*LOT/2, C_SIZE_T))
+  CALL C_F_POINTER(PTR_SP4, RSBIP, [N1+2,LOT])
+  CALL C_F_POINTER(PTR_SP4, CSBIP, [N1/2+1,LOT])
+
   DO J = 1, LOT
     DO I = 1, N1
       TS = 2.0_4*PIS*REAL(I-1,KIND=4)/REAL(N1,KIND=4)
       ORIGS_BATCH(I,J) = COS(REAL(J,KIND=4)*TS)
-      ASBIP(I,J) = ORIGS_BATCH(I,J)
+      RSBIP(I,J) = ORIGS_BATCH(I,J)
     END DO
   END DO
 
   CALL sfftw_plan_many_dft_r2c(PLAN_FWD,1,[N1],LOT, &
-       ASBIP,[N1+2],1,N1+2, &
+       RSBIP,[N1+2],1,N1+2, &
        CSBIP,[N1/2+1],1,N1/2+1, &
        FFTW_ESTIMATE)
-  CALL sfftw_execute_dft_r2c(PLAN_FWD,ASBIP,CSBIP)
+  CALL sfftw_execute_dft_r2c(PLAN_FWD,RSBIP,CSBIP)
   CALL sfftw_destroy_plan(PLAN_FWD)
 
   CALL sfftw_plan_many_dft_c2r(PLAN_BWD,1,[N1],LOT, &
@@ -317,12 +386,14 @@ PROGRAM TEST_FFTW3
   IF (ERRS > 1.0E-5_4) THEN; PRINT '(A)', 'FAILED'; ALL_OK = .FALSE.
   ELSE; PRINT '(A)', 'PASSED'; END IF
 
+  CALL fftwf_free(PTR_SP4)
+
   !=====================================================================
   ! Test 9: memory allocation / free (smoke test)
   !=====================================================================
   PRINT '(A)', '--- Memory allocation smoke test ---'
-  HDP = fftw_alloc_complex(100_C_SIZE_T)
-  HSP = fftwf_alloc_complex(100_C_SIZE_T)
+  HDP = fftw_alloc_complex(99_C_SIZE_T)
+  HSP = fftwf_alloc_complex(99_C_SIZE_T)
   IF (C_ASSOCIATED(HDP) .AND. C_ASSOCIATED(HSP)) THEN
     CALL fftw_free(HDP)
     CALL fftwf_free(HSP)
