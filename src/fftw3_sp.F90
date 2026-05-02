@@ -350,7 +350,7 @@ FUNCTION fftwf_alloc_complex(N) RESULT(PTR)
   USE FFTW3_SP_M, ONLY: c_malloc
   INTEGER(C_SIZE_T), INTENT(IN) :: N
   TYPE(C_PTR) :: PTR
-  PTR = c_malloc(N * 8_C_SIZE_T)
+  PTR = c_malloc((N + 1) * 8_C_SIZE_T)
 END FUNCTION fftwf_alloc_complex
 
 SUBROUTINE fftwf_free(P)
