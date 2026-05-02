@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(fftw4ial LANGUAGES Fortran VERSION 1.0.0)
+project(fftw992 LANGUAGES Fortran VERSION 1.0.0)
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
@@ -100,7 +100,7 @@ target_include_directories(fftw3f PUBLIC
 # Install targets + export
 #-----------------------------------------------------------------------
 install(TARGETS fftw3 fftw3f fftw3_static fftw3f_static
-    EXPORT fftw4ial-targets
+    EXPORT fftw992-targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
@@ -111,31 +111,31 @@ install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/
     FILES_MATCHING PATTERN "*.mod"
 )
 
-install(EXPORT fftw4ial-targets
-    FILE fftw4ial-targets.cmake
-    NAMESPACE fftw4ial::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw4ial
+install(EXPORT fftw992-targets
+    FILE fftw992-targets.cmake
+    NAMESPACE fftw992::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw992
 )
 
 #-----------------------------------------------------------------------
 # Package configuration file
 #-----------------------------------------------------------------------
 configure_package_config_file(
-    "${CMAKE_SOURCE_DIR}/cmake/fftw4ial-config.cmake.in"
-    "${CMAKE_BINARY_DIR}/fftw4ial-config.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw4ial
+    "${CMAKE_SOURCE_DIR}/cmake/fftw992-config.cmake.in"
+    "${CMAKE_BINARY_DIR}/fftw992-config.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw992
 )
 
 write_basic_package_version_file(
-    "${CMAKE_BINARY_DIR}/fftw4ial-config-version.cmake"
+    "${CMAKE_BINARY_DIR}/fftw992-config-version.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
 
 install(FILES
-    "${CMAKE_BINARY_DIR}/fftw4ial-config.cmake"
-    "${CMAKE_BINARY_DIR}/fftw4ial-config-version.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw4ial
+    "${CMAKE_BINARY_DIR}/fftw992-config.cmake"
+    "${CMAKE_BINARY_DIR}/fftw992-config-version.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/fftw992
 )
 
 #-----------------------------------------------------------------------
